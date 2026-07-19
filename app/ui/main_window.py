@@ -53,6 +53,7 @@ class MainWindow(QMainWindow):
         self.deck_browser.browse_requested.connect(self._open_card_browser)
         self.deck_browser.stats_requested.connect(self._open_stats)
         self.deck_browser.settings_requested.connect(self._open_deck_settings)
+        self.deck_browser.history_requested.connect(self._open_history)
         self.deck_browser.new_deck_requested.connect(self._create_deck)
         self.deck_browser.import_requested.connect(self._open_import)
         self.deck_browser.preferences_requested.connect(self._open_settings)
@@ -62,13 +63,12 @@ class MainWindow(QMainWindow):
         self.study_hub.match_requested.connect(self._open_match)
         self.study_hub.learn_requested.connect(self._open_learn)
         self.study_hub.test_requested.connect(self._open_test)
-        self.study_hub.history_requested.connect(self._open_history)
 
         self.study_session.finished.connect(self._back_to_hub)
         self.match_screen.back_requested.connect(self._back_to_hub)
         self.learn_screen.back_requested.connect(self._back_to_hub)
         self.test_screen.back_requested.connect(self._back_to_hub)
-        self.history_screen.back_requested.connect(self._back_to_hub)
+        self.history_screen.back_requested.connect(self._back_to_browser)
 
         self.import_screen.imported.connect(self._after_import)
         self.import_screen.cancelled.connect(self._back_to_browser)

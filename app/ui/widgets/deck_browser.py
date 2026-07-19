@@ -13,6 +13,7 @@ class DeckCard(QFrame):
     study_clicked = Signal(int)
     browse_clicked = Signal(int)
     stats_clicked = Signal(int)
+    history_clicked = Signal(int)
     settings_clicked = Signal(int)
 
     def __init__(self, deck, parent=None):
@@ -44,6 +45,7 @@ class DeckCard(QFrame):
         for text, obj_name, signal in [
             ("Browse", "Secondary", self.browse_clicked),
             ("Stats", "Secondary", self.stats_clicked),
+            ("History", "Secondary", self.history_clicked),
             ("Settings", "Secondary", self.settings_clicked),
         ]:
             btn = QPushButton(text)
@@ -62,6 +64,7 @@ class DeckBrowser(QWidget):
     study_requested = Signal(int)
     browse_requested = Signal(int)
     stats_requested = Signal(int)
+    history_requested = Signal(int)
     settings_requested = Signal(int)
     new_deck_requested = Signal()
     import_requested = Signal()
@@ -121,6 +124,7 @@ class DeckBrowser(QWidget):
             card.study_clicked.connect(self.study_requested.emit)
             card.browse_clicked.connect(self.browse_requested.emit)
             card.stats_clicked.connect(self.stats_requested.emit)
+            card.history_clicked.connect(self.history_requested.emit)
             card.settings_clicked.connect(self.settings_requested.emit)
             self.list_layout.insertWidget(self.list_layout.count() - 1, card)
 

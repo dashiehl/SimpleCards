@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget,
 )
@@ -27,6 +27,7 @@ class ModeTile(QFrame):
         desc = QLabel(description)
         desc.setObjectName("ModeTileDescription")
         desc.setWordWrap(True)
+        desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(desc, stretch=1)
 
         btn = QPushButton(button_text)
@@ -41,7 +42,6 @@ class StudyHub(QWidget):
     match_requested = Signal(int)
     learn_requested = Signal(int)
     test_requested = Signal(int)
-    history_requested = Signal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -60,10 +60,6 @@ class StudyHub(QWidget):
         self.title_label.setObjectName("AppTitle")
         top_row.addWidget(self.title_label)
         top_row.addStretch()
-        history_btn = QPushButton("History")
-        history_btn.setObjectName("Secondary")
-        history_btn.clicked.connect(lambda: self.history_requested.emit(self.deck_id))
-        top_row.addWidget(history_btn)
         outer.addLayout(top_row)
 
         subtitle = QLabel("Choose how you'd like to study this deck.")

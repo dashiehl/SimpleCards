@@ -84,6 +84,10 @@ CANDIDATE_FONTS = [
     "Lora",
     "Crimson Text",
     "Bitter",
+    # Monospace, for variety
+    "Consolas",
+    "Cascadia Code",
+    "Courier New",
 ]
 
 

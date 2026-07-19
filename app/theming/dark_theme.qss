@@ -220,7 +220,8 @@ QFrame#ModeTile:hover {
 }
 QLabel#ModeTileDescription {
     color: #9aa0b4;
-    font-size: 16px;
+    font-size: 20px;
+    qproperty-alignment: AlignCenter;
 }
 
 QPushButton#MatchTile {

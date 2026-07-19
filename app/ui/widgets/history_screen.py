@@ -56,7 +56,7 @@ class HistoryScreen(QWidget):
         outer.setSpacing(16)
 
         top_row = QHBoxLayout()
-        back_btn = QPushButton("< Study Options")
+        back_btn = QPushButton("< Decks")
         back_btn.setObjectName("Secondary")
         back_btn.clicked.connect(self.back_requested.emit)
         top_row.addWidget(back_btn)
