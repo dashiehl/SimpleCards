@@ -7,7 +7,7 @@ from app.db import deck_repository
 from app.db.connection import db_session
 from app.ui.widgets.card_browser import CardBrowser
 from app.ui.widgets.deck_browser import DeckBrowser
-from app.ui.widgets.deck_settings_dialog import DeckSettingsDialog
+from app.ui.widgets.deck_settings_screen import DeckSettingsScreen
 from app.ui.widgets.import_screen import ImportScreen
 from app.ui.widgets.new_deck_dialog import NewDeckDialog
 from app.ui.widgets.stats_screen import StatsScreen
@@ -28,9 +28,10 @@ class MainWindow(QMainWindow):
         self.import_screen = ImportScreen()
         self.card_browser = CardBrowser()
         self.stats_screen = StatsScreen()
+        self.deck_settings_screen = DeckSettingsScreen()
 
         for widget in (self.deck_browser, self.study_session, self.import_screen,
-                       self.card_browser, self.stats_screen):
+                       self.card_browser, self.stats_screen, self.deck_settings_screen):
             self.stack.addWidget(widget)
 
         self.deck_browser.study_requested.connect(self._open_study_session)
@@ -45,6 +46,8 @@ class MainWindow(QMainWindow):
         self.import_screen.cancelled.connect(self._back_to_browser)
         self.card_browser.back_requested.connect(self._back_to_browser)
         self.stats_screen.back_requested.connect(self._back_to_browser)
+        self.deck_settings_screen.back_requested.connect(self._back_to_browser)
+        self.deck_settings_screen.deck_deleted.connect(self._back_to_browser)
 
         self._back_to_browser()
 
@@ -61,11 +64,8 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentWidget(self.stats_screen)
 
     def _open_deck_settings(self, deck_id: int) -> None:
-        dialog = DeckSettingsDialog(deck_id, parent=self)
-        if dialog.exec():
-            dialog.save()
-        if dialog.deleted:
-            self.deck_browser.refresh()
+        self.deck_settings_screen.open_deck(deck_id)
+        self.stack.setCurrentWidget(self.deck_settings_screen)
 
     def _open_import(self) -> None:
         self.import_screen.refresh_decks()

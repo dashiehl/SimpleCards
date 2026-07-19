@@ -8,6 +8,9 @@ from app.pdf_import.extractor import TextSpan
 
 TERM_DEF_RE = re.compile(r"^\s*([A-Za-z][\w '\-]{1,40})\s*[:—–-]\s+(.{5,})$")
 
+BREADCRUMB_RE = re.compile(r"^.+[·•]\s*\d+\s*/\s*\d+\s*$")
+PAGE_FRACTION_RE = re.compile(r"^\d+\s*/\s*\d+$")
+
 
 def _body_style(spans: list[TextSpan]) -> tuple[str, float]:
     """The (font, size) combo with the most total characters is treated as body text."""
@@ -100,6 +103,97 @@ def split_structured_glossary(spans: list[TextSpan]) -> list[CandidateCard]:
     return [c for c in candidates if c.front and c.back]
 
 
+def _label_key(text: str) -> str | None:
+    """Recognize short ALL-CAPS caption spans like "EXAMPLE" or "WHEN TO USE IT" as a
+    named section switch, without needing font metadata for them specifically."""
+    stripped = text.strip()
+    if not stripped or not stripped.isupper() or len(stripped) > 30:
+        return None
+    words = stripped.split()
+    if not (1 <= len(words) <= 4):
+        return None
+    return stripped.lower().replace(" ", "_")
+
+
+def split_name_body_example(spans: list[TextSpan]) -> list[CandidateCard]:
+    """Heuristic: detect a recurring heading style (one per card, possibly several cards
+    per page) and bucket everything until the next heading into fields. Handles decks with
+    no explicit "forms" line, multiple cards per page, quoted/italic examples, numbered
+    steps, and ALL-CAPS section captions (EXAMPLE, WHEN TO USE IT, ...) — patterns common
+    in field-guide and framework-card style PDFs that split_structured_glossary misses."""
+    if not spans:
+        return []
+    body_font, body_size = _body_style(spans)
+    name_style = _detect_name_style(spans, body_size)
+    if name_style is None:
+        return []
+    name_font, name_size = name_style
+
+    candidates: list[CandidateCard] = []
+    current: CandidateCard | None = None
+    section = "back"
+    pending_step: str | None = None
+
+    for s in spans:
+        is_name = s.font == name_font and s.size == name_size
+        if is_name:
+            if current is not None:
+                candidates.append(current)
+            current = CandidateCard(front=s.text, kind="multi_field", source_ref=f"page {s.page_number + 1}")
+            section = "back"
+            pending_step = None
+            continue
+
+        if current is None:
+            continue
+
+        text = s.text.strip()
+        if not text:
+            continue
+
+        if BREADCRUMB_RE.match(text) or PAGE_FRACTION_RE.match(text):
+            continue
+
+        label = _label_key(text)
+        if label:
+            section = label
+            continue
+
+        if pending_step is not None:
+            steps = current.extra_fields.get("steps", "")
+            current.extra_fields["steps"] = f"{steps}\n{pending_step}. {text}".strip()
+            pending_step = None
+            continue
+
+        if text.isdigit() and len(text) <= 2:
+            pending_step = text
+            continue
+
+        target_section = section
+        looks_like_quote = s.is_italic or text.startswith(('"', "'", "“"))
+        if section == "back" and looks_like_quote and current.back:
+            target_section = "example"
+
+        if target_section == "back":
+            current.back = f"{current.back} {text}".strip() if current.back else text
+        else:
+            existing = current.extra_fields.get(target_section, "")
+            current.extra_fields[target_section] = f"{existing} {text}".strip() if existing else text
+
+    if current is not None:
+        candidates.append(current)
+
+    for c in candidates:
+        example = c.extra_fields.get("example")
+        if example:
+            c.extra_fields["example"] = example.strip('"').strip()
+        if not c.back:
+            c.back = c.extra_fields.get("example", "")
+        c.confidence = 0.85 if (c.back and c.extra_fields) else (0.6 if c.back else 0.3)
+
+    return [c for c in candidates if c.front and (c.back or c.extra_fields)]
+
+
 def split_term_definition_pattern(spans: list[TextSpan]) -> list[CandidateCard]:
     """Heuristic #2: lines matching `TERM: definition` / `TERM — definition`."""
     candidates = []
@@ -161,12 +255,14 @@ def split_into_candidates(spans: list[TextSpan], mode: str = "auto") -> list[Can
         return split_whole_page_fallback(spans)
 
     if mode == "detailed":
-        result = split_structured_glossary(spans)
-        if result:
-            return result
+        for splitter in (split_name_body_example, split_structured_glossary):
+            result = splitter(spans)
+            if result:
+                return result
         return split_whole_page_fallback(spans)
 
     for splitter, min_count in (
+        (split_name_body_example, 3),
         (split_structured_glossary, 3),
         (split_term_definition_pattern, 3),
         (split_bullet_groups, 3),

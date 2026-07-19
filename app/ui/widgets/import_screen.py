@@ -79,6 +79,7 @@ class ImportScreen(QWidget):
 
         outer.addWidget(self._build_field_layout_box())
 
+        self.extra_field_keys: list[str] = []
         self.table = QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(["Include", "Front", "Back", "Confidence"])
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -232,7 +233,22 @@ class ImportScreen(QWidget):
 
     def _populate_table(self) -> None:
         self._populate_field_layout()
+
+        extra_keys: list[str] = []
+        for c in self.candidates:
+            for key in c.extra_fields:
+                if key not in extra_keys:
+                    extra_keys.append(key)
+        self.extra_field_keys = extra_keys
+
+        headers = ["Include", "Front", "Back"] + [label_for(k) for k in extra_keys] + ["Confidence"]
+        conf_col = len(headers) - 1
+
         self.table.blockSignals(True)
+        self.table.setColumnCount(len(headers))
+        self.table.setHorizontalHeaderLabels(headers)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self.table.setRowCount(len(self.candidates))
         for row, c in enumerate(self.candidates):
             check_item = QTableWidgetItem()
@@ -245,11 +261,15 @@ class ImportScreen(QWidget):
             self.table.setItem(row, 1, front_item)
             self.table.setItem(row, 2, back_item)
 
+            for col_offset, key in enumerate(extra_keys):
+                extra_item = QTableWidgetItem(c.extra_fields.get(key, ""))
+                self.table.setItem(row, 3 + col_offset, extra_item)
+
             conf_item = QTableWidgetItem(f"{c.confidence:.1f}")
             conf_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
             if c.confidence < 0.6:
                 conf_item.setForeground(Qt.GlobalColor.yellow)
-            self.table.setItem(row, 3, conf_item)
+            self.table.setItem(row, conf_col, conf_item)
         self.table.blockSignals(False)
         self._update_count_label()
 
@@ -267,6 +287,12 @@ class ImportScreen(QWidget):
             c.include = check_item.checkState() == Qt.CheckState.Checked
             c.front = self.table.item(row, 1).text().strip()
             c.back = self.table.item(row, 2).text().strip()
+            for col_offset, key in enumerate(self.extra_field_keys):
+                value = self.table.item(row, 3 + col_offset).text().strip()
+                if value:
+                    c.extra_fields[key] = value
+                else:
+                    c.extra_fields.pop(key, None)
 
         front_fields = self._keys(self.front_list)
         back_fields = self._keys(self.back_list)
@@ -304,7 +330,10 @@ class ImportScreen(QWidget):
         self.file_label.setText("No file selected")
         self.new_deck_name.clear()
         self.card_type_combo.setCurrentIndex(0)
+        self.extra_field_keys = []
         self.table.setRowCount(0)
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["Include", "Front", "Back", "Confidence"])
         self.available_list.clear()
         self.front_list.clear()
         self.back_list.clear()

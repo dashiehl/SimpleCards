@@ -6,6 +6,9 @@ FIELD_LABELS = {
     "forms": "Word Forms",
     "example": "Example",
     "image_path": "Image",
+    "steps": "Steps",
+    "when_to_use_it": "When to Use It",
+    "purpose": "Purpose",
 }
 
 
