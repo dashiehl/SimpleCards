@@ -84,3 +84,19 @@ class CardReviewState:
             interval_days=row["interval_days"], repetitions=row["repetitions"],
             lapses=row["lapses"], due_at=row["due_at"], last_reviewed_at=row["last_reviewed_at"],
         )
+
+
+@dataclass
+class SessionHistoryEntry:
+    id: int
+    deck_id: int
+    mode: str
+    summary: str
+    completed_at: int
+
+    @classmethod
+    def from_row(cls, row) -> "SessionHistoryEntry":
+        return cls(
+            id=row["id"], deck_id=row["deck_id"], mode=row["mode"],
+            summary=row["summary"], completed_at=row["completed_at"],
+        )

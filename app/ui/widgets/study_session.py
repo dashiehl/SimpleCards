@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.cards.cloze import has_cloze_markers, masked_text, revealed_text
-from app.db import card_repository, deck_repository, review_repository
+from app.db import card_repository, deck_repository, history_repository, review_repository
 from app.db.connection import db_session
 from app.sm2.grading import BUTTON_TO_GRADE
 from app.ui.widgets.card_flip_widget import CardFlipWidget
@@ -31,9 +31,9 @@ class StudySession(QWidget):
         outer.setSpacing(16)
 
         top_row = QHBoxLayout()
-        back_btn = QPushButton("< Decks")
+        back_btn = QPushButton("< Study Options")
         back_btn.setObjectName("Secondary")
-        back_btn.clicked.connect(self.finished.emit)
+        back_btn.clicked.connect(self._leave)
         top_row.addWidget(back_btn)
 
         self.undo_btn = QPushButton("Undo")
@@ -173,3 +173,10 @@ class StudySession(QWidget):
         self.undo_btn.setEnabled(False)
         self.index -= 1
         self._show_current()
+
+    def _leave(self) -> None:
+        if self.deck is not None and self.index > 0:
+            plural = "card" if self.index == 1 else "cards"
+            with db_session() as conn:
+                history_repository.log_session(conn, self.deck.id, "flashcards", f"Reviewed {self.index} {plural}")
+        self.finished.emit()

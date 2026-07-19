@@ -65,6 +65,7 @@ class DeckBrowser(QWidget):
     settings_requested = Signal(int)
     new_deck_requested = Signal()
     import_requested = Signal()
+    preferences_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -77,6 +78,11 @@ class DeckBrowser(QWidget):
         header.setObjectName("AppTitle")
         header_row.addWidget(header)
         header_row.addStretch()
+
+        settings_btn = QPushButton("Settings")
+        settings_btn.setObjectName("Secondary")
+        settings_btn.clicked.connect(self.preferences_requested.emit)
+        header_row.addWidget(settings_btn)
 
         import_btn = QPushButton("Import PDF")
         import_btn.setObjectName("Secondary")

@@ -45,3 +45,20 @@ CREATE TABLE IF NOT EXISTS review_log (
     interval_days_after  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_review_log_card_id ON review_log(card_id, reviewed_at);
+
+CREATE TABLE IF NOT EXISTS learn_progress (
+    card_id    INTEGER PRIMARY KEY REFERENCES cards(id) ON DELETE CASCADE,
+    deck_id    INTEGER NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+    stage      TEXT NOT NULL DEFAULT 'stage1' CHECK (stage IN ('stage1', 'stage2', 'mastered')),
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_learn_progress_deck_id ON learn_progress(deck_id);
+
+CREATE TABLE IF NOT EXISTS session_history (
+    id           INTEGER PRIMARY KEY,
+    deck_id      INTEGER NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+    mode         TEXT NOT NULL CHECK (mode IN ('flashcards', 'match', 'learn', 'test')),
+    summary      TEXT NOT NULL DEFAULT '',
+    completed_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_session_history_deck_id ON session_history(deck_id, completed_at);

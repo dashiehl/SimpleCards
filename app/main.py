@@ -4,10 +4,13 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 
 from app.config import ROOT_DIR
 from app.db.connection import init_db
+from app.theming.fonts import best_default_font
+from app.ui import settings_store
 from app.ui.main_window import MainWindow
 
 
@@ -17,6 +20,9 @@ def main() -> None:
     app = QApplication(sys.argv)
     qss_path = ROOT_DIR / "app" / "theming" / "dark_theme.qss"
     app.setStyleSheet(qss_path.read_text())
+
+    font_family = settings_store.get_font_family() or best_default_font()
+    app.setFont(QFont(font_family))
 
     window = MainWindow()
     window.show()

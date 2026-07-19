@@ -14,6 +14,7 @@ class CardFacePanel(QWidget):
         super().__init__(parent)
         self._layout = QVBoxLayout(self)
         self._layout.addStretch()
+        self._layout.addStretch()
 
     def set_fields(self, fields: list[tuple[str, str]]) -> None:
         while self._layout.count():
@@ -21,6 +22,7 @@ class CardFacePanel(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
+        self._layout.addStretch()
         self._layout.addStretch()
         visible = [(k, v) for k, v in fields if v]
 
