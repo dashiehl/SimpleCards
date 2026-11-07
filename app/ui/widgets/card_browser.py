@@ -50,11 +50,15 @@ class CardBrowser(QWidget):
         outer.addLayout(filter_row)
 
         self.table = QTableWidget(0, 4)
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(44)
+        self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False)
         self.table.setHorizontalHeaderLabels(["Front", "Back", "Tags", ""])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(3, 130)
+        self.table.setColumnWidth(3, 160)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         outer.addWidget(self.table, stretch=1)
 
@@ -97,7 +101,8 @@ class CardBrowser(QWidget):
 
             actions = QWidget()
             actions_layout = QHBoxLayout(actions)
-            actions_layout.setContentsMargins(0, 0, 0, 0)
+            actions_layout.setContentsMargins(4, 4, 8, 4)
+            actions_layout.setSpacing(6)
             edit_btn = QPushButton("Edit")
             edit_btn.setObjectName("TableAction")
             edit_btn.clicked.connect(lambda _, c=card: self._edit_card(c))

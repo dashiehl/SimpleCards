@@ -18,8 +18,9 @@ class StatTile(QFrame):
         super().__init__(parent)
         self.setObjectName("DeckCard")
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 14, 18, 14)
         value_label = QLabel(value)
-        value_label.setObjectName("CardFront")
+        value_label.setObjectName("StatValue")
         label_label = QLabel(label)
         label_label.setObjectName("DeckMeta")
         layout.addWidget(value_label)
@@ -43,7 +44,10 @@ class ForecastBar(QWidget):
         track_layout.setContentsMargins(0, 0, 0, 0)
         fill_ratio = (count / max_count) if max_count else 0
         fill = QFrame()
-        fill.setStyleSheet("background-color: #7c6cf0; border-radius: 7px;")
+        fill.setStyleSheet(
+            "background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #7c6cf0, stop:1 #3fb6de);"
+            " border-radius: 7px;"
+        )
         track_layout.addWidget(fill, int(fill_ratio * 100))
         track_layout.addStretch(max(1, 100 - int(fill_ratio * 100)))
         layout.addWidget(track, stretch=1)
@@ -79,8 +83,8 @@ class StatsScreen(QWidget):
         self.tile_row = QGridLayout()
         outer.addLayout(self.tile_row)
 
-        forecast_label = QLabel("Next 7 days")
-        forecast_label.setObjectName("DeckName")
+        forecast_label = QLabel("NEXT 7 DAYS")
+        forecast_label.setObjectName("SectionTitle")
         outer.addWidget(forecast_label)
         self.forecast_container = QVBoxLayout()
         outer.addLayout(self.forecast_container)

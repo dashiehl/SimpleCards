@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QProgressBar, QPushButton, QScrollArea,
+    QVBoxLayout, QWidget,
 )
+
+GRID_COLUMNS = 2
 
 from app.db import deck_repository
 from app.db.connection import db_session
@@ -19,45 +22,63 @@ class DeckCard(QFrame):
     def __init__(self, deck, parent=None):
         super().__init__(parent)
         self.setObjectName("DeckCard")
+        self.setMinimumHeight(150)
+        self.setMaximumHeight(175)
         self.deck = deck
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(18, 14, 18, 14)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 18, 20, 14)
+        layout.setSpacing(8)
 
-        text_col = QVBoxLayout()
+        top = QHBoxLayout()
         name = QLabel(deck.name)
         name.setObjectName("DeckName")
-        meta = QLabel(f"{deck.total_count} cards · {deck.source.replace('_', ' ')}")
-        meta.setObjectName("DeckMeta")
-        text_col.addWidget(name)
-        text_col.addWidget(meta)
-        layout.addLayout(text_col)
-        layout.addStretch()
-
+        name.setWordWrap(True)
+        top.addWidget(name, stretch=1)
         if deck.due_count > 0:
             badge = QLabel(f"{deck.due_count} due")
             badge.setObjectName("DueBadge")
         else:
             badge = QLabel("caught up")
             badge.setObjectName("DueBadgeEmpty")
-        layout.addWidget(badge)
+        top.addWidget(badge, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(top)
 
-        for text, obj_name, signal in [
-            ("Browse", "Secondary", self.browse_clicked),
-            ("Stats", "Secondary", self.stats_clicked),
-            ("History", "Secondary", self.history_clicked),
-            ("Settings", "Secondary", self.settings_clicked),
+        meta = QLabel(f"{deck.total_count} cards · {deck.source.replace('_', ' ')}")
+        meta.setObjectName("DeckMeta")
+        layout.addWidget(meta)
+
+        # Share of the deck that is NOT due right now (i.e. reviewed and scheduled ahead).
+        progress = QProgressBar()
+        progress.setRange(0, max(1, deck.total_count))
+        progress.setValue(max(0, deck.total_count - deck.due_count))
+        progress.setTextVisible(False)
+        progress.setToolTip("Cards reviewed and scheduled ahead")
+        layout.addWidget(progress)
+        layout.addStretch()
+
+        bottom = QHBoxLayout()
+        bottom.setSpacing(2)
+        for text, signal in [
+            ("Browse", self.browse_clicked),
+            ("Stats", self.stats_clicked),
+            ("History", self.history_clicked),
+            ("Settings", self.settings_clicked),
         ]:
             btn = QPushButton(text)
-            btn.setObjectName(obj_name)
+            btn.setObjectName("Ghost")
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.clicked.connect(lambda _, s=signal: s.emit(deck.id))
-            layout.addWidget(btn)
+            bottom.addWidget(btn)
+        bottom.addStretch()
 
         study_btn = QPushButton("Study")
         study_btn.setObjectName("Primary")
+        study_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         study_btn.setEnabled(deck.total_count > 0)
         study_btn.clicked.connect(lambda: self.study_clicked.emit(deck.id))
-        layout.addWidget(study_btn)
+        bottom.addWidget(study_btn)
+        layout.addLayout(bottom)
 
 
 class DeckBrowser(QWidget):
@@ -77,9 +98,16 @@ class DeckBrowser(QWidget):
         outer.setSpacing(16)
 
         header_row = QHBoxLayout()
+        title_col = QVBoxLayout()
+        title_col.setSpacing(2)
         header = QLabel("Your Decks")
         header.setObjectName("AppTitle")
-        header_row.addWidget(header)
+        title_col.addWidget(header)
+        self.summary_label = QLabel("")
+        self.summary_label.setObjectName("Subtitle")
+        self.summary_label.setContentsMargins(8, 0, 0, 0)
+        title_col.addWidget(self.summary_label)
+        header_row.addLayout(title_col)
         header_row.addStretch()
 
         settings_btn = QPushButton("Settings")
@@ -101,16 +129,19 @@ class DeckBrowser(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         self.list_container = QWidget()
-        self.list_layout = QVBoxLayout(self.list_container)
-        self.list_layout.setSpacing(10)
-        self.list_layout.addStretch()
+        container_layout = QVBoxLayout(self.list_container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        self.list_layout = QGridLayout()
+        self.list_layout.setSpacing(14)
+        container_layout.addLayout(self.list_layout)
+        container_layout.addStretch()
         scroll.setWidget(self.list_container)
         outer.addWidget(scroll)
 
         self.refresh()
 
     def refresh(self) -> None:
-        while self.list_layout.count() > 1:
+        while self.list_layout.count():
             item = self.list_layout.takeAt(0)
             if item.widget():
                 item.widget().setParent(None)
@@ -119,17 +150,26 @@ class DeckBrowser(QWidget):
         with db_session() as conn:
             decks = deck_repository.list_decks(conn)
 
-        for deck in decks:
+        for i, deck in enumerate(decks):
             card = DeckCard(deck)
             card.study_clicked.connect(self.study_requested.emit)
             card.browse_clicked.connect(self.browse_requested.emit)
             card.stats_clicked.connect(self.stats_requested.emit)
             card.history_clicked.connect(self.history_requested.emit)
             card.settings_clicked.connect(self.settings_requested.emit)
-            self.list_layout.insertWidget(self.list_layout.count() - 1, card)
+            self.list_layout.addWidget(card, i // GRID_COLUMNS, i % GRID_COLUMNS)
+        for col in range(GRID_COLUMNS):
+            self.list_layout.setColumnStretch(col, 1)
 
+        total_due = sum(d.due_count for d in decks)
         if not decks:
+            self.summary_label.setText("")
             empty = QLabel("No decks yet. Import a PDF or create one manually to get started.")
             empty.setObjectName("DeckMeta")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.list_layout.insertWidget(0, empty)
+            empty.setContentsMargins(0, 60, 0, 0)
+            self.list_layout.addWidget(empty, 0, 0, 1, GRID_COLUMNS)
+        elif total_due:
+            self.summary_label.setText(f"{total_due} cards due across {len(decks)} decks")
+        else:
+            self.summary_label.setText(f"All caught up across {len(decks)} decks")
