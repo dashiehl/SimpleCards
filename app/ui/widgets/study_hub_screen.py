@@ -12,26 +12,34 @@ from app.db.connection import db_session
 class ModeTile(QFrame):
     clicked = Signal()
 
-    def __init__(self, title: str, description: str, button_text: str, parent=None):
+    def __init__(self, icon: str, title: str, description: str, button_text: str, parent=None):
         super().__init__(parent)
         self.setObjectName("ModeTile")
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 18, 20, 18)
-        layout.setSpacing(8)
+        layout.setContentsMargins(22, 20, 22, 18)
+        layout.setSpacing(10)
 
+        head = QHBoxLayout()
+        head.setSpacing(12)
+        icon_label = QLabel(icon)
+        icon_label.setObjectName("ModeIcon")
+        head.addWidget(icon_label)
         name = QLabel(title)
         name.setObjectName("DeckName")
-        layout.addWidget(name)
+        head.addWidget(name)
+        head.addStretch()
+        layout.addLayout(head)
 
         desc = QLabel(description)
         desc.setObjectName("ModeTileDescription")
         desc.setWordWrap(True)
-        desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(desc, stretch=1)
+        layout.addWidget(desc)
+        layout.addStretch()
 
         btn = QPushButton(button_text)
         btn.setObjectName("Primary")
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.clicked.connect(self.clicked.emit)
         layout.addWidget(btn)
 
@@ -63,36 +71,36 @@ class StudyHub(QWidget):
         outer.addLayout(top_row)
 
         subtitle = QLabel("Choose how you'd like to study this deck.")
-        subtitle.setObjectName("DeckMeta")
+        subtitle.setObjectName("Subtitle")
         outer.addWidget(subtitle)
 
         grid = QGridLayout()
         grid.setSpacing(16)
-        outer.addLayout(grid, stretch=1)
+        outer.addLayout(grid)
 
         flashcards_tile = ModeTile(
-            "Flashcards", "Flip through cards and grade yourself — feeds your spaced-repetition schedule.",
+            "⧉", "Flashcards", "Flip through cards and grade yourself — feeds your spaced-repetition schedule.",
             "Study Flashcards",
         )
         flashcards_tile.clicked.connect(lambda: self.flashcards_requested.emit(self.deck_id))
         grid.addWidget(flashcards_tile, 0, 0)
 
         learn_tile = ModeTile(
-            "Learn", "Multiple choice first, then typed recall. Remembers your progress between sessions.",
+            "✦", "Learn", "Multiple choice first, then typed recall. Remembers your progress between sessions.",
             "Start Learn",
         )
         learn_tile.clicked.connect(lambda: self.learn_requested.emit(self.deck_id))
         grid.addWidget(learn_tile, 0, 1)
 
         match_tile = ModeTile(
-            "Match", "Race the clock pairing up terms and definitions.",
+            "⇄", "Match", "Race the clock pairing up terms and definitions.",
             "Play Match",
         )
         match_tile.clicked.connect(lambda: self.match_requested.emit(self.deck_id))
         grid.addWidget(match_tile, 1, 0)
 
         test_tile = ModeTile(
-            "Test", "Build a custom practice test — multiple choice, true/false, written, and matching.",
+            "✓", "Test", "Build a custom practice test — multiple choice, true/false, written, and matching.",
             "Build a Test",
         )
         test_tile.clicked.connect(lambda: self.test_requested.emit(self.deck_id))
